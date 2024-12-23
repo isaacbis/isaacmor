@@ -140,8 +140,30 @@
         return response.json();
     }
 
+    // Funzione per verificare se l'utente ha già prenotato oggi
+    function userHasBookingToday(reservations) {
+      const today = new Date().toISOString().split('T')[0];
+      for (let field in reservations) {
+        if (reservations[field]?.[today]) {
+          for (let slot in reservations[field][today]) {
+            if (reservations[field][today][slot] === currentUser) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
     // Funzione per effettuare una prenotazione
     async function bookSlot(field, date, time) {
+        const reservations = await fetchReservations();
+
+        if (userHasBookingToday(reservations)) {
+          alert('Puoi effettuare solo una prenotazione per oggi su un campo.');
+          return;
+        }
+
         const response = await fetch(`${BASE_URL}/api/reservations`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -189,6 +211,7 @@
 
       if (type === 'admin') {
         document.getElementById('admin-area').style.display = 'block';
+        await populateAdminTable();
       }
 
       await populateAllFields();
@@ -214,7 +237,7 @@
       const today = new Date().toISOString().split('T')[0];
       container.innerHTML = '';
 
-      const timeSlots = ["11:00", "11:45", "12:00", "12:45", "13:00"];
+      const timeSlots = ["11:00", "11:45", "12:30", "13:15", "14:00", "14:45", "15:30", "16:15", "17:00", "17:45", "18:30", "19:15", "20:00", "20:45"];
       timeSlots.forEach(slot => {
         const slotDiv = document.createElement('div');
         slotDiv.classList.add('slot');
@@ -237,7 +260,6 @@
       });
     }
 
-    // Funzione per popolamento tabella amministratore
     async function populateAdminTable() {
       const adminTableBody = document.getElementById('admin-table');
       adminTableBody.innerHTML = '';
@@ -281,18 +303,19 @@
     }
 
     async function cancelReservationAsAdmin(field, date, time) {
-      const response = await fetch(`${BASE_URL}/api/reservations`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ field, date, time, user: 'admin' })
-      });
-      if (response.ok) {
-        alert('Prenotazione annullata con successo!');
-        await populateAdminTable();
-        await populateAllFields();
-      } else {
-        alert('Errore: impossibile annullare la prenotazione.');
-      }
+        const response = await fetch(`${BASE_URL}/api/reservations`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ field, date, time })
+        });
+
+        if (response.ok) {
+            alert('Prenotazione cancellata dall'amministratore!');
+            await populateAdminTable();
+            await populateAllFields();
+        } else {
+            alert('Errore: impossibile cancellare la prenotazione.');
+        }
     }
   </script>
 </body>
